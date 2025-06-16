@@ -1,156 +1,219 @@
-<html lang="en"><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L2X-GPT</title>
-    <script src="/static/navbar.js"></script>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="/static/tabcloaker.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-    <script src="/static/particles.js"></script>
-    <script src="https://js.puter.com/v2/"></script>
-    <meta name="google-adsense-account" content="ca-pub-8655131518824482">
-    <style>#particles-js {
-  position: fixed;  /* Keeps it full-screen even when scrolling */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: black;
-  z-index: -1;  /* Ensures it stays behind everything */
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PuterJS AI Chat</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
 
-#main {
-  position: relative;  /* Ensures content appears above the particles */
-  z-index: 1;  /* Moves content in front of particles */
-}
-</style>
-    <script>document.addEventListener("DOMContentLoaded", (event) => { cloakAll(); });</script>
-    <style>body {
-        font-family: 'Arial', sans-serif;
-        background-size: cover;
-        color: white;
-        margin: 30px;
-        padding: 0;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        overflow-x: hidden;
-        overflow: hidden;
-    }
-    #main-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        max-width: 900px;
-        padding: 20px;
-        z-index: 10;
-    }
-    .roddyrichhesbox {
-        background: rgba(50, 50, 50, 0.85);
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
-        width: 100%;  
-        max-width: 900px;  
-        min-width: 350px;
-        position: relative;
-        margin: 10 auto; 
-    }
-    h1 {
-        font-size: 3rem;
-        color: red;
-        margin-bottom: 20px;
-        font-weight: 700;
-    }
     #chat-container {
-        background: #1c1c1c;
-        border-radius: 15px;
-        height: 350px;
-        margin-bottom: 20px;
-        padding: 15px;
-        overflow-y: auto;
-        font-size: 1.1rem;
-        color: #f5f5f5;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        border: 2px solid #333;
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
     }
-    #chat-container::-webkit-scrollbar {
-        width: 8px;
+
+    #messages {
+      height: 500px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
     }
-    #chat-container::-webkit-scrollbar-thumb {
-        background: white;
-        border-radius: 10px;
+
+    .msg {
+      margin: 10px 0;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+      max-width: 80%;
+      word-wrap: break-word;
     }
-    #chat-container::-webkit-scrollbar-thumb:hover {
-        background: red;
+
+    .user {
+      background: #dcf8c6;
+      align-self: flex-end;
+      margin-left: auto;
     }
-    #user-input {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 20px;
-        background: #2c2c2c;
-        border: 2px solid #333;
-        border-radius: 12px;
-        color: #fff;
-        font-size: 1rem;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        resize: none;
-        transition: 0.3s ease;
-        box-sizing: border-box; 
+
+    .bot {
+      background: #ececec;
+      align-self: flex-start;
+      margin-right: auto;
     }
-    #user-input:focus {
-        outline: none;
-        border-color: red;
-        box-shadow: 0 4px 15px red;
+
+    .image {
+      max-width: 100%;
+      margin-top: 8px;
+      border-radius: 10px;
     }
-    #send-button {
-        width: 100%;
-        padding: 15px;
-        background: red;
-        color: white;
-        font-size: 1.1em;
-        border-radius: 15px;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 4px 15px red;
-        transition: all 0.3s ease;
+
+    #input-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
     }
-    #send-button:hover {
-        background: red;
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px red;
+
+    input, button, select {
+      font-size: 16px;
+      padding: 10px;
     }
-    @media (max-width: 600px) {
-        h1 {
-            font-size: 2rem;
-        }
-        #chat-container {
-            height: 300px;
-        }
-        #user-input {
-            font-size: 0.9rem;
-            padding: 10px;
-        }
-        #send-button {
-            font-size: 1rem;
-            padding: 12px;
-        }
-    }</style>
+
+    input {
+      flex: 1;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  </style>
 </head>
 <body>
-        <div id="particles-js"></div>
-    <div id="main-container">
-        <div class="roddyrichhesbox">
-            <h1>Xenz-GPT</h1>
-            <div id="chat-container"></div>
-            <textarea id="user-input" placeholder="Ask Xenz-GPT"></textarea>
-            <button id="send-button">Send</button>
-        </div>
+
+<div id="chat-container">
+  <div class="controls">
+    <div>
+      Model:
+      <select id="model">
+        <option value="gpt-4o" selected>GPT-4o</option>
+        <option value="gpt-4.1">GPT-4.1</option>
+        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        <option value="o3-mini">o3-mini</option>
+      </select>
     </div>
-    <script src="ia.js"></script>
+    <button onclick="loadHistory()">📂 Load Chat</button>
+  </div>
 
+  <div id="messages" style="display: flex; flex-direction: column;"></div>
 
-</body></html>
+  <div id="input-area">
+    <input id="user-input" type="text" placeholder="Type or speak (/image: for images)" />
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="startListening()">🎤</button>
+  </div>
+</div>
+
+<script>
+  let history = [];
+
+  async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const text = input.value.trim();
+    const model = document.getElementById('model').value;
+    if (!text) return;
+    input.value = '';
+
+    addMessage('user', text);
+    scrollToBottom();
+
+    if (text.startsWith('/image:')) {
+      const prompt = text.replace('/image:', '').trim();
+      const img = await puter.ai.txt2img(prompt);
+      const imgEl = document.createElement('img');
+      imgEl.src = img.src;
+      imgEl.className = 'image bot';
+      document.getElementById('messages').appendChild(imgEl);
+      scrollToBottom();
+      return;
+    }
+
+    history.push({ role: 'user', content: text });
+
+    const stream = await puter.ai.chat(history, { model, stream: true });
+
+    let botMsg = '';
+    const botDiv = document.createElement('div');
+    botDiv.className = 'msg bot';
+    botDiv.textContent = '...';
+    document.getElementById('messages').appendChild(botDiv);
+    scrollToBottom();
+
+    for await (const part of stream) {
+      botMsg += part.text;
+      botDiv.textContent = botMsg;
+      scrollToBottom();
+    }
+
+    history.push({ role: 'assistant', content: botMsg });
+
+    speak(botMsg); // TTS
+    saveChat();    // Save chat after each turn
+  }
+
+  function addMessage(sender, text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + sender;
+    msg.textContent = text;
+    document.getElementById('messages').appendChild(msg);
+  }
+
+  function scrollToBottom() {
+    const el = document.getElementById('messages');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // Voice input
+  function startListening() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('user-input').value = transcript;
+    };
+    recognition.start();
+  }
+
+  // Text-to-speech
+  function speak(text) {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    speechSynthesis.speak(utter);
+  }
+
+  // Save chat to Puter filesystem
+  async function saveChat() {
+    const chatFile = await puter.fs.getFile('/chat-history.json', { create: true });
+    await chatFile.write(JSON.stringify(history, null, 2));
+  }
+
+  // Load chat history
+  async function loadHistory() {
+    try {
+      const chatFile = await puter.fs.getFile('/chat-history.json');
+      const json = await chatFile.readAsText();
+      history = JSON.parse(json);
+      document.getElementById('messages').innerHTML = '';
+      for (const msg of history) {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          addMessage(msg.role === 'user' ? 'user' : 'bot', msg.content);
+        }
+      }
+      scrollToBottom();
+    } catch (err) {
+      alert("No saved chat history found.");
+    }
+  }
+</script>
+
+</body>
+</html>
