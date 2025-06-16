@@ -61,7 +61,6 @@
     let isListening = false;
     let recognition;
 
-    // Add chat message to UI
     function addMessage(sender, text, isHTML = false) {
       const div = document.createElement("div");
       if (sender === "user") {
@@ -76,13 +75,11 @@
       scrollToBottom();
     }
 
-    // Scroll chat to bottom
     function scrollToBottom() {
       const el = document.getElementById("messages");
       el.scrollTop = el.scrollHeight;
     }
 
-    // Send user message and get AI response
     async function sendMessage() {
       const input = document.getElementById("user-input");
       const text = input.value.trim();
@@ -93,48 +90,35 @@
       input.value = "";
       addMessage("user", text);
 
-      // Clear old messages when switching chats or models
-      // (optional, can remove this if you want to keep full history)
-      // document.getElementById("messages").innerHTML = '';
-
       if (allowImages && model.startsWith("dall-e")) {
-        // Send prompt to DALL·E model via puter.ai.chat
+        // Image generation via puter.ai.image()
         try {
-          history.push({ role: "user", content: text });
-          // DALL·E models expect simple prompt
-          const response = await puter.ai.chat(history, { model });
-          const content = response.choices?.[0]?.message?.content || "";
-
-          // The returned content is expected to be a JSON with image URLs or markdown with images
-          // Try parse URLs from markdown images (common practice)
-          const urls = [...content.matchAll(/!\[.*?\]\((https?:\/\/[^)]+)\)/g)].map(m => m[1]);
-
-          if (urls.length) {
-            urls.forEach(url => {
-              const img = document.createElement("img");
-              img.src = url;
-              img.className = "rounded mt-2 max-w-sm";
-              addMessage("bot", img.outerHTML, true);
-            });
+          const response = await puter.ai.image({
+            prompt: text,
+            model: model, // e.g. "dall-e-3"
+            n: 1,
+            size: "1024x1024"
+          });
+          const url = response.data?.[0]?.url;
+          if (url) {
+            addMessage("bot", `<img src="${url}" alt="Generated image" class="rounded mt-2 max-w-sm" />`, true);
+            history.push({ role: "assistant", content: `![image](${url})` });
+            saveChat();
+            return;
           } else {
-            // fallback: just print raw content
-            addMessage("bot", content);
+            throw new Error("No image URL returned");
           }
-
-          history.push({ role: "assistant", content });
-          saveChat();
-          return;
         } catch (e) {
-          addMessage("bot", "⚠️ Image generation failed: " + e.message);
+          addMessage("bot", "⚠️ Image generation failed: " + (e.message || e));
           return;
         }
       }
 
-      // Normal chat completion for text models
+      // Normal text chat
       try {
         history.push({ role: "user", content: text });
-
         const stream = await puter.ai.chat(history, { model, stream: true });
+
         let reply = '';
         const msgDiv = document.createElement("div");
         msgDiv.className = "bg-gray-100 p-3 rounded max-w-[75%]";
@@ -156,7 +140,6 @@
       }
     }
 
-    // Voice input: just types into textarea, no auto-send
     function startListening() {
       if (isListening) return;
 
@@ -178,7 +161,6 @@
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
-        // Append or overwrite? Here, overwrite for simplicity:
         document.getElementById("user-input").value = transcript;
       };
 
@@ -196,7 +178,6 @@
       recognition.start();
     }
 
-    // Text to speech
     function speak(text) {
       if (!window.speechSynthesis) return;
       const utterance = new SpeechSynthesisUtterance(text);
@@ -204,12 +185,10 @@
       speechSynthesis.speak(utterance);
     }
 
-    // Remove markdown symbols for speech synthesis
     function stripMarkdown(md) {
       return md.replace(/[`_*#>~\-]/g, '');
     }
 
-    // File upload handler
     document.getElementById('fileInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -217,7 +196,6 @@
       }
     });
 
-    // Chat management
     async function saveChat() {
       try {
         const file = await puter.fs.getFile(`/xenzgpt/${chatId}.json`, { create: true });
@@ -278,7 +256,6 @@
       }
     }
 
-    // Handle Enter and Shift+Enter in textarea
     function handleInputKey(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
