@@ -1,6 +1,6 @@
-importScripts('/static/uv/uv.bundle.js');
-importScripts('/static/uv/uv.config.js');
-importScripts('/static/uv/uv.sw.js');
+importScripts('https://playdotlol.github.io/ee/static/uv/uv.bundle.js');
+importScripts('https://playdotlol.github.io/ee/static/uv/uv.config.js');
+importScripts('https://playdotlol.github.io/ee/static/uv/uv.sw.js');
 importScripts('https://arc.io/arc-sw-core.js');
 
 const sw = new UVServiceWorker();
