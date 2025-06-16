@@ -51,7 +51,7 @@
         onkeydown="handleInputKey(event)"
       ></textarea>
       <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
-      <button onclick="startListening()" class="bg-gray-300 px-3 rounded" id="voiceBtn">🎤</button>
+      <button onclick="startListening()" class="bg-gray-300 px-3 rounded" id="voiceBtn" title="Start voice input">🎤</button>
     </div>
   </div>
 
@@ -68,7 +68,7 @@
         if (isHTML) div.innerHTML = text;
         else div.textContent = text;
       } else {
-        div.className = "bg-gray-100 p-3 rounded max-w-[75%]";
+        div.className = "bg-gray-100 p-3 rounded max-w-[75%] whitespace-pre-wrap";
         div.innerHTML = isHTML ? text : marked.parse(text);
       }
       document.getElementById("messages").appendChild(div);
@@ -91,25 +91,33 @@
       addMessage("user", text);
 
       if (allowImages && model.startsWith("dall-e")) {
-        // Use puter.ai.txt2img() for image gen
+        // Use puter.ai.txt2img() for image generation
         try {
           const response = await puter.ai.txt2img({
             prompt: text,
             model: model,
             n: 1,
-            size: "1024x1024"
+            size: "1024x1024",
           });
+          console.log("Image generation response:", response);
+
           const url = response.data?.[0]?.url;
           if (url) {
-            addMessage("bot", `<img src="${url}" alt="Generated image" class="rounded mt-2 max-w-sm" />`, true);
+            addMessage(
+              "bot",
+              `<img src="${url}" alt="Generated image" class="rounded mt-2 max-w-sm" />`,
+              true
+            );
             history.push({ role: "assistant", content: `![image](${url})` });
             saveChat();
             return;
           } else {
-            throw new Error("No image URL returned");
+            throw new Error("No image URL in response");
           }
         } catch (e) {
-          addMessage("bot", "⚠️ Image generation failed: " + (e.message || e));
+          console.error("Image generation error:", e);
+          const msg = e?.message || JSON.stringify(e) || String(e);
+          addMessage("bot", "⚠️ Image generation failed: " + msg);
           return;
         }
       }
@@ -121,7 +129,7 @@
 
         let reply = '';
         const msgDiv = document.createElement("div");
-        msgDiv.className = "bg-gray-100 p-3 rounded max-w-[75%]";
+        msgDiv.className = "bg-gray-100 p-3 rounded max-w-[75%] whitespace-pre-wrap";
         msgDiv.innerHTML = '<em>...</em>';
         document.getElementById("messages").appendChild(msgDiv);
         scrollToBottom();
@@ -136,7 +144,7 @@
         speak(stripMarkdown(reply));
         saveChat();
       } catch (e) {
-        addMessage("bot", "⚠️ Chat error: " + e.message);
+        addMessage("bot", "⚠️ Chat error: " + (e.message || e));
       }
     }
 
