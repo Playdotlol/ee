@@ -91,10 +91,13 @@
       addMessage("user", text);
 
       if (allowImages && model.startsWith("dall-e")) {
-        // Use puter.ai.txt2img() for image generation
+        if (!text || typeof text !== "string" || text.trim() === "") {
+          addMessage("bot", "⚠️ Please enter a valid prompt for image generation.");
+          return;
+        }
         try {
           const response = await puter.ai.txt2img({
-            prompt: text,
+            prompt: text.trim(),
             model: model,
             n: 1,
             size: "1024x1024",
