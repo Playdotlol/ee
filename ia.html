@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
   <meta charset="UTF-8" />
   <title>XenzGPT</title>
@@ -10,16 +10,16 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-  <div class="max-w-5xl mx-auto p-4">
+  <div class="max-w-5xl mx-auto p-4 flex flex-col h-screen">
     <!-- Header -->
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-3xl font-bold text-blue-600">XenzGPT</h1>
       <div class="flex gap-2 items-center">
-        <select id="model" class="p-2 rounded border">
+        <select id="model" class="p-2 rounded border" onchange="newChat()">
           <option value="gpt-4o" selected>GPT-4o</option>
           <option value="gpt-4.1">GPT-4.1</option>
           <option value="gpt-3.5-turbo">GPT-3.5</option>
-          <option value="o3-mini">o3-mini</option>
+          <option value="dall-e-3">DALL·E 3</option>
         </select>
         <label class="flex items-center text-sm">
           <input type="checkbox" id="imageToggle" class="mr-1" checked />
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Messages -->
-    <div id="messages" class="bg-white rounded-lg p-4 h-[500px] overflow-y-auto flex flex-col space-y-3 border mb-4"></div>
+    <div id="messages" class="bg-white rounded-lg p-4 flex-1 overflow-y-auto flex flex-col space-y-3 border mb-4"></div>
 
     <!-- Input -->
     <div class="flex gap-2">
@@ -61,45 +61,83 @@
     let isListening = false;
     let recognition;
 
-    // Send message function
+    // Add chat message to UI
+    function addMessage(sender, text, isHTML = false) {
+      const div = document.createElement("div");
+      if (sender === "user") {
+        div.className = "self-end bg-blue-100 p-3 rounded max-w-[75%] whitespace-pre-wrap";
+        if (isHTML) div.innerHTML = text;
+        else div.textContent = text;
+      } else {
+        div.className = "bg-gray-100 p-3 rounded max-w-[75%]";
+        div.innerHTML = isHTML ? text : marked.parse(text);
+      }
+      document.getElementById("messages").appendChild(div);
+      scrollToBottom();
+    }
+
+    // Scroll chat to bottom
+    function scrollToBottom() {
+      const el = document.getElementById("messages");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // Send user message and get AI response
     async function sendMessage() {
       const input = document.getElementById("user-input");
       const text = input.value.trim();
       const model = document.getElementById("model").value;
       const allowImages = document.getElementById("imageToggle").checked;
+
       if (!text) return;
       input.value = "";
       addMessage("user", text);
 
-      if (allowImages && text.startsWith("/image:")) {
-        const prompt = text.replace("/image:", "").trim();
+      // Clear old messages when switching chats or models
+      // (optional, can remove this if you want to keep full history)
+      // document.getElementById("messages").innerHTML = '';
+
+      if (allowImages && model.startsWith("dall-e")) {
+        // Send prompt to DALL·E model via puter.ai.chat
         try {
-          // Using Puter DALL·E API for image generation
-          const imgs = await puter.ai.dallE({ prompt, n: 1, size: "512x512" });
-          imgs.forEach(img => {
-            const imgEl = document.createElement("img");
-            imgEl.src = img.url;
-            imgEl.className = "rounded mt-2 max-w-sm";
-            const wrap = document.createElement("div");
-            wrap.className = "bg-gray-100 p-2 rounded";
-            wrap.appendChild(imgEl);
-            document.getElementById("messages").appendChild(wrap);
-          });
-          scrollToBottom();
+          history.push({ role: "user", content: text });
+          // DALL·E models expect simple prompt
+          const response = await puter.ai.chat(history, { model });
+          const content = response.choices?.[0]?.message?.content || "";
+
+          // The returned content is expected to be a JSON with image URLs or markdown with images
+          // Try parse URLs from markdown images (common practice)
+          const urls = [...content.matchAll(/!\[.*?\]\((https?:\/\/[^)]+)\)/g)].map(m => m[1]);
+
+          if (urls.length) {
+            urls.forEach(url => {
+              const img = document.createElement("img");
+              img.src = url;
+              img.className = "rounded mt-2 max-w-sm";
+              addMessage("bot", img.outerHTML, true);
+            });
+          } else {
+            // fallback: just print raw content
+            addMessage("bot", content);
+          }
+
+          history.push({ role: "assistant", content });
+          saveChat();
+          return;
         } catch (e) {
           addMessage("bot", "⚠️ Image generation failed: " + e.message);
+          return;
         }
-        return;
       }
 
-      history.push({ role: "user", content: text });
-
+      // Normal chat completion for text models
       try {
-        const stream = await puter.ai.chat(history, { model, stream: true });
+        history.push({ role: "user", content: text });
 
+        const stream = await puter.ai.chat(history, { model, stream: true });
         let reply = '';
         const msgDiv = document.createElement("div");
-        msgDiv.className = "bg-gray-100 p-3 rounded";
+        msgDiv.className = "bg-gray-100 p-3 rounded max-w-[75%]";
         msgDiv.innerHTML = '<em>...</em>';
         document.getElementById("messages").appendChild(msgDiv);
         scrollToBottom();
@@ -118,27 +156,7 @@
       }
     }
 
-    // Add chat message
-    function addMessage(sender, text) {
-      const div = document.createElement("div");
-      if (sender === "user") {
-        div.className = "self-end bg-blue-100 p-3 rounded max-w-[75%] whitespace-pre-wrap";
-        div.textContent = text;
-      } else {
-        div.className = "bg-gray-100 p-3 rounded max-w-[75%]";
-        div.innerHTML = marked.parse(text);
-      }
-      document.getElementById("messages").appendChild(div);
-      scrollToBottom();
-    }
-
-    // Scroll chat to bottom
-    function scrollToBottom() {
-      const el = document.getElementById("messages");
-      el.scrollTop = el.scrollHeight;
-    }
-
-    // Voice input: type what you say into the input box
+    // Voice input: just types into textarea, no auto-send
     function startListening() {
       if (isListening) return;
 
@@ -160,6 +178,7 @@
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
+        // Append or overwrite? Here, overwrite for simplicity:
         document.getElementById("user-input").value = transcript;
       };
 
@@ -185,12 +204,12 @@
       speechSynthesis.speak(utterance);
     }
 
-    // Remove markdown symbols for speech
+    // Remove markdown symbols for speech synthesis
     function stripMarkdown(md) {
       return md.replace(/[`_*#>~\-]/g, '');
     }
 
-    // File upload
+    // File upload handler
     document.getElementById('fileInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -267,5 +286,6 @@
       }
     }
   </script>
+
 </body>
 </html>
