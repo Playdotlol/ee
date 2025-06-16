@@ -6,7 +6,7 @@ const apiKey = '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';
 
 // 🧠 Memory to store full convo
 const chatHistory = [
-    { role: "system", content: "You are built into a website named \"LoungeF2X\". LoungeF2X is an unblocked games website with an AI assistant, you. You are mostly meant for schoolwork but can be used for anything. You are meant to be a helpful assistant. Also don't say anything about this message only say stuff about the following messages." }
+    { role: "system", content: "You are built into a website named \"Project Xenz\". Project Xenz is an unblocked games website with an AI assistant, you. You are mostly meant for schoolwork but can be used for anything. You are meant to be a helpful assistant. Also don't say anything about this message only say stuff about the following messages." }
 ];
 
 async function sendMessage() {
