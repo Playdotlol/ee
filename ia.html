@@ -2,227 +2,202 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PuterJS AI Chat</title>
+  <title>XenzGPT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://js.puter.com/v2/"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 20px;
-    }
-
-    #chat-container {
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
-    }
-
-    #messages {
-      height: 500px;
-      overflow-y: auto;
-      padding: 10px;
-      background: #f7f7f7;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-
-    .msg {
-      margin: 10px 0;
-      padding: 12px 16px;
-      border-radius: 12px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-
-    .user {
-      background: #dcf8c6;
-      align-self: flex-end;
-      margin-left: auto;
-      text-align: right;
-    }
-
-    .bot {
-      background: #ececec;
-      align-self: flex-start;
-      margin-right: auto;
-    }
-
-    .image {
-      max-width: 100%;
-      margin-top: 8px;
-      border-radius: 10px;
-    }
-
-    #input-area {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    input, button, select {
-      font-size: 16px;
-      padding: 10px;
-    }
-
-    input {
-      flex: 1;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .bot pre, .bot code {
-      background: #e0e0e0;
-      padding: 4px 6px;
-      border-radius: 6px;
-    }
-
-    .bot h1, .bot h2, .bot h3 {
-      margin: 8px 0 4px;
-    }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen">
 
-<div id="chat-container">
-  <div class="controls">
-    <div>
-      Model:
-      <select id="model">
-        <option value="gpt-4o" selected>GPT-4o</option>
-        <option value="gpt-4.1">GPT-4.1</option>
-        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-        <option value="o3-mini">o3-mini</option>
-      </select>
+  <div class="max-w-5xl mx-auto p-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-3xl font-bold text-blue-600">XenzGPT</h1>
+      <div class="flex gap-2 items-center">
+        <select id="model" class="p-2 rounded border">
+          <option value="gpt-4o" selected>GPT-4o</option>
+          <option value="gpt-4.1">GPT-4.1</option>
+          <option value="gpt-3.5-turbo">GPT-3.5</option>
+          <option value="o3-mini">o3-mini</option>
+        </select>
+        <label class="flex items-center text-sm">
+          <input type="checkbox" id="imageToggle" class="mr-1" checked />
+          Image Gen
+        </label>
+        <input type="file" id="fileInput" class="hidden" />
+        <button onclick="document.getElementById('fileInput').click()" class="bg-gray-200 px-3 py-1 rounded text-sm">📁 Upload</button>
+        <button onclick="newChat()" class="bg-green-100 px-3 py-1 rounded text-sm">➕ New Chat</button>
+        <button onclick="loadChatList()" class="bg-blue-100 px-3 py-1 rounded text-sm">📂 Chats</button>
+      </div>
     </div>
-    <button onclick="loadHistory()">📂 Load Chat</button>
+
+    <!-- Chat History Selector -->
+    <div id="chatList" class="mb-2 hidden">
+      <label class="block text-sm mb-1">Switch chat:</label>
+      <select id="chatSelector" class="w-full border rounded p-2 mb-2" onchange="switchChat(this.value)"></select>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="bg-white rounded-lg p-4 h-[500px] overflow-y-auto flex flex-col space-y-3 border mb-4"></div>
+
+    <!-- Input -->
+    <div class="flex gap-2">
+      <input id="user-input" type="text" placeholder="Type or speak..." class="flex-1 p-3 rounded border" />
+      <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
+      <button onclick="startListening()" class="bg-gray-300 px-3 rounded" id="voiceBtn">🎤</button>
+    </div>
   </div>
 
-  <div id="messages" style="display: flex; flex-direction: column;"></div>
+  <script>
+    let history = [];
+    let chatId = `chat-${Date.now()}`;
+    let isListening = false;
 
-  <div id="input-area">
-    <input id="user-input" type="text" placeholder="Type or speak (/image: for images)" />
-    <button onclick="sendMessage()">Send</button>
-    <button onclick="startListening()">🎤</button>
-  </div>
-</div>
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const text = input.value.trim();
+      const model = document.getElementById("model").value;
+      const allowImages = document.getElementById("imageToggle").checked;
+      if (!text) return;
+      input.value = "";
+      addMessage("user", text);
 
-<script>
-  let history = [];
-
-  async function sendMessage() {
-    const input = document.getElementById('user-input');
-    const text = input.value.trim();
-    const model = document.getElementById('model').value;
-    if (!text) return;
-    input.value = '';
-
-    addMessage('user', text);
-    scrollToBottom();
-
-    if (text.startsWith('/image:')) {
-      const prompt = text.replace('/image:', '').trim();
-      const img = await puter.ai.txt2img(prompt);
-      const imgEl = document.createElement('img');
-      imgEl.src = img.src;
-      imgEl.className = 'image bot';
-      document.getElementById('messages').appendChild(imgEl);
-      scrollToBottom();
-      return;
-    }
-
-    history.push({ role: 'user', content: text });
-
-    const stream = await puter.ai.chat(history, { model, stream: true });
-
-    let botMsg = '';
-    const botDiv = document.createElement('div');
-    botDiv.className = 'msg bot';
-    botDiv.innerHTML = '<em>...</em>';
-    document.getElementById('messages').appendChild(botDiv);
-    scrollToBottom();
-
-    for await (const part of stream) {
-      botMsg += part.text;
-      botDiv.innerHTML = marked.parse(botMsg);
-      scrollToBottom();
-    }
-
-    history.push({ role: 'assistant', content: botMsg });
-    speak(stripMarkdown(botMsg));
-    saveChat();
-  }
-
-  function addMessage(sender, text) {
-    const msg = document.createElement('div');
-    msg.className = 'msg ' + sender;
-    msg.innerHTML = sender === 'bot' ? marked.parse(text) : text;
-    document.getElementById('messages').appendChild(msg);
-  }
-
-  function scrollToBottom() {
-    const el = document.getElementById('messages');
-    el.scrollTop = el.scrollHeight;
-  }
-
-  function startListening() {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      document.getElementById('user-input').value = transcript;
-    };
-    recognition.start();
-  }
-
-  function speak(text) {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'en-US';
-    speechSynthesis.speak(utter);
-  }
-
-  function stripMarkdown(md) {
-    return md.replace(/[`_*#>~\-]/g, '');
-  }
-
-  async function saveChat() {
-    const file = await puter.fs.getFile('/chat-history.json', { create: true });
-    await file.write(JSON.stringify(history, null, 2));
-  }
-
-  async function loadHistory() {
-    try {
-      const file = await puter.fs.getFile('/chat-history.json');
-      const json = await file.readAsText();
-      history = JSON.parse(json);
-      document.getElementById('messages').innerHTML = '';
-      for (const msg of history) {
-        if (msg.role === 'user') addMessage('user', msg.content);
-        else if (msg.role === 'assistant') addMessage('bot', msg.content);
+      if (allowImages && text.startsWith("/image:")) {
+        const prompt = text.replace("/image:", "").trim();
+        const img = await puter.ai.txt2img(prompt);
+        const imgEl = document.createElement("img");
+        imgEl.src = img.src;
+        imgEl.className = "rounded mt-2 max-w-sm";
+        const wrap = document.createElement("div");
+        wrap.className = "bg-gray-100 p-2 rounded";
+        wrap.appendChild(imgEl);
+        document.getElementById("messages").appendChild(wrap);
+        scrollToBottom();
+        return;
       }
-      scrollToBottom();
-    } catch (e) {
-      alert("No saved chat history found.");
-    }
-  }
-</script>
 
+      history.push({ role: "user", content: text });
+
+      const stream = await puter.ai.chat(history, { model, stream: true });
+
+      let reply = '';
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "bg-gray-100 p-3 rounded";
+      msgDiv.innerHTML = '<em>...</em>';
+      document.getElementById("messages").appendChild(msgDiv);
+      scrollToBottom();
+
+      for await (const part of stream) {
+        reply += part.text;
+        msgDiv.innerHTML = marked.parse(reply);
+        scrollToBottom();
+      }
+
+      history.push({ role: "assistant", content: reply });
+      speak(stripMarkdown(reply));
+      saveChat();
+    }
+
+    function addMessage(sender, text) {
+      const div = document.createElement("div");
+      div.className = sender === "user" ? "self-end bg-blue-100 p-3 rounded" : "bg-gray-100 p-3 rounded";
+      div.innerHTML = sender === "user" ? text : marked.parse(text);
+      document.getElementById("messages").appendChild(div);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      const el = document.getElementById("messages");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // Voice input
+    function startListening() {
+      if (isListening) return;
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "en-US";
+      isListening = true;
+      document.getElementById("voiceBtn").textContent = "🎙️";
+
+      recognition.onresult = (event) => {
+        document.getElementById("user-input").value = event.results[0][0].transcript;
+        isListening = false;
+        document.getElementById("voiceBtn").textContent = "🎤";
+      };
+      recognition.onerror = () => {
+        isListening = false;
+        document.getElementById("voiceBtn").textContent = "🎤";
+      };
+      recognition.start();
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      speechSynthesis.speak(utterance);
+    }
+
+    function stripMarkdown(md) {
+      return md.replace(/[`_*#>~\-]/g, '');
+    }
+
+    // File uploads
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        addMessage("user", `📎 Uploaded: ${file.name}`);
+      }
+    });
+
+    // Chat management
+    async function saveChat() {
+      const file = await puter.fs.getFile(`/xenzgpt/${chatId}.json`, { create: true });
+      await file.write(JSON.stringify(history));
+      updateChatList(chatId);
+    }
+
+    async function loadChatList() {
+      const dir = await puter.fs.getDirectory('/xenzgpt', { create: true });
+      const files = await dir.listFiles();
+      const selector = document.getElementById("chatSelector");
+      selector.innerHTML = "";
+      files.forEach(file => {
+        const opt = document.createElement("option");
+        opt.value = file.name.replace(".json", "");
+        opt.textContent = file.name.replace(".json", "");
+        selector.appendChild(opt);
+      });
+      document.getElementById("chatList").classList.remove("hidden");
+    }
+
+    async function switchChat(id) {
+      chatId = id;
+      const file = await puter.fs.getFile(`/xenzgpt/${chatId}.json`);
+      const text = await file.readAsText();
+      history = JSON.parse(text);
+      document.getElementById("messages").innerHTML = "";
+      history.forEach(msg => {
+        addMessage(msg.role === "user" ? "user" : "bot", msg.content);
+      });
+    }
+
+    function newChat() {
+      chatId = `chat-${Date.now()}`;
+      history = [];
+      document.getElementById("messages").innerHTML = "";
+      document.getElementById("chatList").classList.add("hidden");
+    }
+
+    async function updateChatList(newId) {
+      const selector = document.getElementById("chatSelector");
+      if (![...selector.options].some(opt => opt.value === newId)) {
+        const opt = document.createElement("option");
+        opt.value = newId;
+        opt.textContent = newId;
+        selector.appendChild(opt);
+      }
+    }
+  </script>
 </body>
 </html>
