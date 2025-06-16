@@ -1,4 +1,4 @@
-importScripts("https://playdotlol.github.io/ee/static/uv/uv.sw.js");
+importScripts("/static/uv/uv.sw.js");
 
 const sw = new UVServiceWorker();
 
