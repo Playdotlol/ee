@@ -8,187 +8,116 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
+<body class="bg-gray-100 p-4 min-h-screen">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold text-blue-600 mb-4">XenzGPT</h1>
 
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-blue-600 mb-4">XenzGPT 🌟</h1>
-
-    <div class="flex flex-wrap gap-2 mb-4">
+    <div class="flex items-center gap-2 mb-3">
       <select id="model" class="p-2 rounded border">
         <option value="gpt-4o">GPT-4o</option>
         <option value="dall-e-3">DALL·E 3</option>
       </select>
-      <button id="voiceBtn" class="p-2 bg-purple-600 text-white rounded">🎤 Voice</button>
       <label class="flex items-center gap-1">
-        <input type="checkbox" id="imageToggle" class="mr-1" />
+        <input type="checkbox" id="imageToggle" />
         Enable Image Gen
       </label>
-      <button id="newChat" class="p-2 bg-green-600 text-white rounded">➕ New Chat</button>
-      <input type="file" id="fileInput" class="hidden" />
-      <button id="fileBtn" class="p-2 bg-gray-600 text-white rounded">📁 Upload File</button>
+      <button id="voiceBtn" class="px-3 py-1 bg-purple-600 text-white rounded">🎤 Voice</button>
     </div>
 
-    <div id="chatList" class="flex gap-2 overflow-x-auto mb-4"></div>
+    <div id="chat" class="bg-white border rounded p-4 h-[400px] overflow-y-auto mb-4 space-y-4"></div>
 
-    <div id="chatBox" class="bg-white border rounded p-4 h-[400px] overflow-y-auto mb-4 space-y-4"></div>
-
-    <textarea id="input" rows="3" class="w-full p-2 border rounded mb-2" placeholder="Type your message..."></textarea>
+    <textarea
+      id="input"
+      rows="3"
+      placeholder="Type your message..."
+      class="w-full p-2 border rounded mb-2"
+    ></textarea>
     <button id="sendBtn" class="w-full bg-blue-600 text-white p-2 rounded">Send</button>
   </div>
 
   <script>
-    let chats = {};
-    let currentChatId = Date.now().toString();
-
-    const chatList = document.getElementById("chatList");
-    const chatBox = document.getElementById("chatBox");
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("sendBtn");
+    const chat = document.getElementById("chat");
     const modelSelect = document.getElementById("model");
     const imageToggle = document.getElementById("imageToggle");
 
-    // Initialize first chat
-    chats[currentChatId] = [];
+    let messages = [];
 
-    function renderChatList() {
-      chatList.innerHTML = "";
-      Object.keys(chats).forEach(id => {
-        const btn = document.createElement("button");
-        btn.textContent = `Chat ${id.slice(-4)}`;
-        btn.className = "px-2 py-1 bg-white border rounded";
-        if (id === currentChatId) btn.classList.add("bg-blue-200");
-        btn.onclick = () => {
-          currentChatId = id;
-          renderChat();
-          renderChatList();
-        };
-        chatList.appendChild(btn);
-      });
+    function appendMessage(role, content, isHTML = false) {
+      const div = document.createElement("div");
+      div.className = role === "user" ? "text-right" : "text-left";
+      div.innerHTML = isHTML
+        ? content
+        : `<div class="inline-block bg-${role === "user" ? "blue" : "gray"}-200 rounded p-2 max-w-lg">${marked.parse(content)}</div>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    function renderChat() {
-      chatBox.innerHTML = "";
-      chats[currentChatId].forEach(({ sender, content, isImage }) => {
-        const div = document.createElement("div");
-        div.className = sender === "user" ? "text-right" : "text-left";
-        if (isImage) {
-          div.innerHTML = `<img src="${content}" class="rounded max-w-xs inline-block" />`;
-        } else {
-          div.innerHTML = `<div class="inline-block bg-gray-200 rounded p-2 max-w-xl">${marked.parse(content)}</div>`;
-        }
-        chatBox.appendChild(div);
-      });
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    async function handleSend() {
+      const prompt = input.value.trim();
+      if (!prompt) return;
 
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
       const model = modelSelect.value;
-      const enableImage = imageToggle.checked;
-
-      chats[currentChatId].push({ sender: "user", content: text });
-      renderChat();
+      appendMessage("user", prompt);
       input.value = "";
 
-      if (enableImage && model.startsWith("dall-e")) {
+      // Handle DALL-E image generation
+      if (imageToggle.checked && model.includes("dall-e")) {
         try {
-          const res = await puter.ai.txt2img({
-            prompt: String(text),
-            model,
-            n: 1,
-            size: "1024x1024"
-          });
-          if (res.success && res.data?.[0]?.url) {
-            chats[currentChatId].push({ sender: "bot", content: res.data[0].url, isImage: true });
-          } else {
-            chats[currentChatId].push({ sender: "bot", content: "⚠️ Image generation failed." });
-          }
+          const imgElement = await puter.ai.txt2img(prompt);
+          const wrapper = document.createElement("div");
+          wrapper.className = "text-left";
+          wrapper.appendChild(imgElement);
+          chat.appendChild(wrapper);
+          chat.scrollTop = chat.scrollHeight;
         } catch (err) {
-          chats[currentChatId].push({ sender: "bot", content: "⚠️ Error: " + (err.message || err) });
+          appendMessage("assistant", `⚠️ Image generation failed: ${err.message || err}`);
         }
-        renderChat();
         return;
       }
 
-      // Text response
+      // Text response from GPT
       const stream = await puter.ai.chat({
         messages: [
           { role: "system", content: "You are a helpful assistant." },
-          ...chats[currentChatId].map(m => ({
-            role: m.sender === "user" ? "user" : "assistant",
-            content: m.content
-          })),
-          { role: "user", content: text }
+          ...messages,
+          { role: "user", content: prompt }
         ],
         model
       });
 
       let reply = "";
       for await (const chunk of stream) {
-        if (chunk.choices?.[0]?.delta?.content) {
-          reply += chunk.choices[0].delta.content;
-          renderBotPartial(reply);
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (delta) {
+          reply += delta;
+          appendMessage("assistant", reply);
         }
       }
-      chats[currentChatId].push({ sender: "bot", content: reply });
-      renderChat();
+
+      messages.push({ role: "user", content: prompt });
+      messages.push({ role: "assistant", content: reply });
     }
 
-    function renderBotPartial(content) {
-      renderChat();
-      const div = document.createElement("div");
-      div.className = "text-left";
-      div.innerHTML = `<div class="inline-block bg-gray-100 rounded p-2 max-w-xl opacity-70">${marked.parse(content)}</div>`;
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    sendBtn.onclick = handleSend;
 
-    // Voice input
-    document.getElementById("voiceBtn").onclick = () => {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = "en-US";
-      recognition.start();
-      recognition.onresult = event => {
-        input.value += event.results[0][0].transcript;
-      };
-    };
-
-    // File upload (basic)
-    document.getElementById("fileBtn").onclick = () => {
-      document.getElementById("fileInput").click();
-    };
-
-    document.getElementById("fileInput").onchange = e => {
-      const file = e.target.files[0];
-      if (file) {
-        chats[currentChatId].push({ sender: "user", content: `📎 Uploaded file: ${file.name}` });
-        renderChat();
-      }
-    };
-
-    // New chat
-    document.getElementById("newChat").onclick = () => {
-      currentChatId = Date.now().toString();
-      chats[currentChatId] = [];
-      renderChatList();
-      renderChat();
-    };
-
-    // Keyboard events
-    input.addEventListener("keydown", e => {
+    input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        handleSend();
       }
     });
 
-    sendBtn.onclick = sendMessage;
-
-    // Initial render
-    renderChatList();
-    renderChat();
+    // Voice input
+    document.getElementById("voiceBtn").onclick = () => {
+      const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      rec.lang = "en-US";
+      rec.start();
+      rec.onresult = (e) => {
+        input.value += e.results[0][0].transcript;
+      };
+    };
   </script>
-
 </body>
 </html>
