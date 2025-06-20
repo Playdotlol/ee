@@ -1,228 +1,202 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-900 text-white">
+<html lang="en" class="h-full bg-gray-900 text-white dark:bg-white dark:text-black">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>XenzGPT</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.puter.com/puter.ai.min.js"></script>
-
+  <script src="https://js.puter.com/v2/"></script>
 </head>
-<body class="h-full flex transition-colors duration-300" id="body">
+<body class="h-full flex transition-colors duration-300">
 
-<!-- Sidebar -->
-<div class="w-72 bg-gray-800 dark:bg-white dark:text-black p-4 flex flex-col space-y-4 border-r border-gray-700">
-  <div class="text-lg font-bold">XenzGPT</div>
-
-  <div class="flex gap-2">
-    <button id="new-chat" class="bg-green-600 text-white rounded px-3 py-2">+ New Chat</button>
-    <button id="theme-toggle" class="bg-gray-700 dark:bg-gray-300 text-white dark:text-black rounded px-3 py-2">🌙</button>
-  </div>
-
-  <input id="chat-search" placeholder="Search chats..." class="p-2 rounded bg-gray-700 dark:bg-gray-200 dark:text-black"/>
-
-  <div id="chat-list" class="flex flex-col space-y-2 overflow-y-auto text-sm max-h-[300px]"></div>
-
-  <div class="mt-auto space-y-4 text-sm">
-    <div>
-      <label class="block text-gray-400 mb-1">Mode</label>
-      <select id="mode-select" class="w-full bg-gray-700 dark:bg-gray-200 dark:text-black p-2 rounded">
-        <option value="chat">Chat (GPT-4o)</option>
-        <option value="code">Code (GPT-4.1)</option>
-        <option value="image">Image Gen</option>
-      </select>
+  <!-- Sidebar -->
+  <div class="w-72 bg-gray-800 dark:bg-white dark:text-black p-4 flex flex-col space-y-4 border-r border-gray-700 dark:border-gray-300">
+    <div class="text-lg font-bold">XenzGPT</div>
+    <div class="flex gap-2">
+      <button id="new-chat" class="bg-green-600 text-white rounded px-3 py-2">+ New Chat</button>
+      <button id="theme-toggle" class="bg-gray-700 dark:bg-gray-300 text-white dark:text-black rounded px-3 py-2">🌙</button>
     </div>
 
-    <div>
-      <label class="block text-gray-400 mb-1">Model</label>
-      <select id="model-select" class="w-full bg-gray-700 dark:bg-gray-200 dark:text-black p-2 rounded">
-        <option value="gpt-4o">GPT-4o</option>
-        <option value="gpt-4-1106-preview">GPT-4.1</option>
-        <option value="gpt-4">GPT-4</option>
-        <option value="gpt-3.5-turbo">GPT-3.5</option>
-      </select>
+    <input id="chat-search" placeholder="Search chats..." class="p-2 rounded bg-gray-700 dark:bg-gray-200 dark:text-black"/>
+
+    <div id="chat-list" class="flex flex-col space-y-2 overflow-y-auto text-sm max-h-[300px]"></div>
+
+    <div class="mt-auto space-y-4 text-sm">
+      <div>
+        <label class="block text-gray-400 mb-1">Mode</label>
+        <select id="mode-select" class="w-full bg-gray-700 dark:bg-gray-200 dark:text-black p-2 rounded">
+          <option value="chat">Chat (GPT‑4o)</option>
+          <option value="code">Code (GPT‑4.1)</option>
+          <option value="image">Image Gen</option>
+        </select>
+      </div>
+      <button id="download-chat" class="bg-blue-600 w-full py-2 rounded text-white">⬇️ Download Chat</button>
     </div>
-
-    <button id="download-chat" class="bg-blue-600 w-full py-2 rounded text-white">⬇️ Download Chat</button>
   </div>
-</div>
 
-<!-- Chat Area -->
-<div class="flex-1 flex flex-col h-full">
-  <div id="chat-window" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-900 dark:bg-white dark:text-black transition-colors"></div>
+  <!-- Chat Area -->
+  <div class="flex-1 flex flex-col h-full">
+    <div id="chat-window" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-900 dark:bg-white dark:text-black transition-colors"></div>
+    <form id="chat-form" class="p-4 border-t border-gray-700 dark:border-gray-300 bg-gray-800 dark:bg-gray-200 flex space-x-2">
+      <input id="user-input" type="text" placeholder="Send a message..." class="flex-1 p-2 rounded bg-gray-700 dark:bg-white dark:text-black"/>
+      <button class="bg-blue-600 px-4 py-2 rounded text-white" type="submit">Send</button>
+    </form>
+  </div>
 
-  <form id="chat-form" class="p-4 border-t border-gray-700 dark:border-gray-300 bg-gray-800 dark:bg-gray-200 flex space-x-2">
-    <input id="user-input" type="text" placeholder="Send a message..." class="flex-1 p-2 rounded bg-gray-700 dark:bg-white text-white dark:text-black"/>
-    <button class="bg-blue-600 px-4 py-2 rounded text-white" type="submit">Send</button>
-  </form>
-</div>
+  <script>
+    const chatList = document.getElementById("chat-list");
+    const chatWindow = document.getElementById("chat-window");
+    const chatForm = document.getElementById("chat-form");
+    const userInput = document.getElementById("user-input");
+    const modeSelect = document.getElementById("mode-select");
+    const newChatBtn = document.getElementById("new-chat");
+    const themeToggle = document.getElementById("theme-toggle");
+    const downloadBtn = document.getElementById("download-chat");
+    const chatSearch = document.getElementById("chat-search");
 
-<script>
-  const chatList = document.getElementById("chat-list");
-  const chatWindow = document.getElementById("chat-window");
-  const chatForm = document.getElementById("chat-form");
-  const userInput = document.getElementById("user-input");
-  const modelSelect = document.getElementById("model-select");
-  const modeSelect = document.getElementById("mode-select");
-  const newChatBtn = document.getElementById("new-chat");
-  const themeToggle = document.getElementById("theme-toggle");
-  const downloadBtn = document.getElementById("download-chat");
-  const chatSearch = document.getElementById("chat-search");
+    let chats = JSON.parse(localStorage.getItem("xenz_chats") || "[]");
+    let active = 0;
+    let isDark = true;
 
-  let chats = JSON.parse(localStorage.getItem("xenz_chats") || "[]");
-  let activeChatIndex = 0;
-  let isDark = true;
+    function saveChats() {
+      localStorage.setItem("xenz_chats", JSON.stringify(chats));
+    }
 
-  function saveChats() {
-    localStorage.setItem("xenz_chats", JSON.stringify(chats));
-  }
-
-  function newChat() {
-    chats.push({ name: "Chat " + (chats.length + 1), messages: [] });
-    activeChatIndex = chats.length - 1;
-    saveChats();
-    renderChats();
-    renderMessages();
-  }
-
-  function deleteChat(i) {
-    if (confirm("Delete this chat?")) {
-      chats.splice(i, 1);
-      if (activeChatIndex >= chats.length) activeChatIndex = chats.length - 1;
+    function newChat() {
+      chats.push({ name: "Chat " + (chats.length + 1), messages: [] });
+      active = chats.length - 1;
       saveChats();
       renderChats();
       renderMessages();
     }
-  }
 
-  function renameChat(i) {
-    const newName = prompt("Rename chat:", chats[i].name);
-    if (newName) {
-      chats[i].name = newName;
-      saveChats();
-      renderChats();
-    }
-  }
-
-  function renderChats() {
-    chatList.innerHTML = "";
-    const filter = chatSearch.value.toLowerCase();
-    chats.forEach((chat, i) => {
-      if (!chat.name.toLowerCase().includes(filter)) return;
-      const row = document.createElement("div");
-      row.className = "flex items-center justify-between gap-1";
-      const btn = document.createElement("button");
-      btn.className = `flex-1 text-left px-3 py-2 rounded ${i === activeChatIndex ? "bg-gray-700 dark:bg-gray-300 dark:text-black" : "hover:bg-gray-700 dark:hover:bg-gray-200"}`;
-      btn.textContent = chat.name;
-      btn.onclick = () => {
-        activeChatIndex = i;
-        renderMessages();
+    function deleteChat(i) {
+      if (confirm("Delete this chat?")) {
+        chats.splice(i, 1);
+        active = Math.min(active, chats.length - 1);
+        saveChats();
         renderChats();
-      };
-
-      const rename = document.createElement("button");
-      rename.textContent = "🖉";
-      rename.onclick = () => renameChat(i);
-
-      const del = document.createElement("button");
-      del.textContent = "🗑️";
-      del.onclick = () => deleteChat(i);
-
-      row.append(btn, rename, del);
-      chatList.appendChild(row);
-    });
-  }
-
-  function renderMessages() {
-    const messages = chats[activeChatIndex]?.messages || [];
-    chatWindow.innerHTML = "";
-    messages.forEach(msg => {
-      const div = document.createElement("div");
-      if (msg.role === "image") {
-        const img = document.createElement("img");
-        img.src = msg.content;
-        img.className = "rounded border border-gray-600 max-w-xs mt-2";
-        chatWindow.appendChild(img);
-      } else {
-        div.className = `p-3 rounded max-w-2xl whitespace-pre-wrap ${msg.role === "user" ? "bg-blue-700 self-end ml-auto" : "bg-gray-700 dark:bg-gray-300 text-white dark:text-black self-start mr-auto"}`;
-        div.textContent = msg.content;
-        chatWindow.appendChild(div);
+        renderMessages();
       }
-    });
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-  }
+    }
 
-  chatForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const input = userInput.value.trim();
-    if (!input) return;
+    function renameChat(i) {
+      const newName = prompt("Rename chat:", chats[i].name);
+      if (newName) {
+        chats[i].name = newName;
+        saveChats();
+        renderChats();
+      }
+    }
 
-    const mode = modeSelect.value;
-    const model = mode === "chat" ? "gpt-4o"
-                 : mode === "code" ? "gpt-4-1106-preview"
-                 : modelSelect.value;
+    function renderChats() {
+      chatList.innerHTML = "";
+      const filter = chatSearch.value.toLowerCase();
+      chats.forEach((c, i) => {
+        if (!c.name.toLowerCase().includes(filter)) return;
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between gap-1";
+        const btn = document.createElement("button");
+        btn.className = `flex-1 text-left px-3 py-2 rounded ${i === active ? "bg-gray-700 dark:bg-gray-300 dark:text-black" : "hover:bg-gray-700 dark:hover:bg-gray-200"}`;
+        btn.textContent = c.name;
+        btn.onclick = () => {
+          active = i;
+          renderMessages();
+          renderChats();
+        };
 
-    const chat = chats[activeChatIndex];
-    chat.messages.push({ role: "user", content: input });
-    renderMessages();
-    userInput.value = "";
+        const rename = document.createElement("button");
+        rename.textContent = "🖉";
+        rename.onclick = () => renameChat(i);
 
-    if (mode === "image") {
-      const img = await puter.ai.txt2img({ prompt: input });
-      chat.messages.push({ role: "assistant", content: "[Image generated]" });
-      chat.messages.push({ role: "image", content: img.url });
+        const del = document.createElement("button");
+        del.textContent = "🗑️";
+        del.onclick = () => deleteChat(i);
+
+        row.append(btn, rename, del);
+        chatList.appendChild(row);
+      });
+    }
+
+    function renderMessages() {
+      const msgs = chats[active]?.messages || [];
+      chatWindow.innerHTML = "";
+      msgs.forEach(m => {
+        if (m.role === "image") {
+          const img = document.createElement("img");
+          img.src = m.content;
+          img.className = "rounded border border-gray-600 max-w-xs";
+          chatWindow.appendChild(img);
+        } else {
+          const div = document.createElement("div");
+          div.className = `p-3 rounded max-w-2xl whitespace-pre-wrap ${
+            m.role === "user" ? "bg-blue-700 self-end ml-auto" : "bg-gray-700 dark:bg-gray-300 dark:text-black self-start mr-auto"
+          }`;
+          div.textContent = m.content;
+          chatWindow.appendChild(div);
+        }
+      });
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    chatForm.onsubmit = async e => {
+      e.preventDefault();
+      const prompt = userInput.value.trim();
+      if (!prompt) return;
+      const mode = modeSelect.value;
+      const model = mode === "chat" ? "gpt-4o"
+                    : mode === "code" ? "gpt-4.1" : undefined;
+
+      const chat = chats[active];
+      chat.messages.push({ role: "user", content: prompt });
+      userInput.value = "";
+      renderMessages();
+
+      if (mode === "image") {
+        const img = await puter.ai.txt2img({ prompt });
+        chat.messages.push({ role: "assistant", content: "[Image generated]" });
+        chat.messages.push({ role: "image", content: img.url });
+        saveChats();
+        renderMessages();
+        return;
+      }
+
+      chat.messages.push({ role: "assistant", content: "..." });
+      renderMessages();
+
+      const response = await puter.ai.chat(
+        chat.messages.filter(m => m.role !== "image"),
+        false,
+        { model }
+      );
+
+      chat.messages.pop();
+      chat.messages.push({ role: "assistant", content: response.text || response.message.content });
       saveChats();
       renderMessages();
-      return;
-    }
+    };
 
-    chat.messages.push({ role: "assistant", content: "..." });
-    renderMessages();
+    newChatBtn.onclick = newChat;
+    chatSearch.oninput = renderChats;
+    themeToggle.onclick = () => {
+      isDark = !isDark;
+      document.documentElement.classList.toggle("dark", isDark);
+      themeToggle.textContent = isDark ? "🌙" : "☀️";
+    };
 
-    const fullMessages = [
-      { role: "system", content: mode === "code" ? "You are a helpful coding assistant." : "You are a helpful assistant." },
-      ...chat.messages.filter(m => m.role !== "image")
-    ];
+    downloadBtn.onclick = () => {
+      const c = chats[active];
+      const blob = new Blob([JSON.stringify(c, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = c.name.replace(/\s+/g, "_") + ".json";
+      a.click();
+    };
 
-    try {
-      const res = await puter.ai.chat({
-        model,
-        messages: fullMessages,
-        stream: false
-      });
-      chat.messages.pop();
-      chat.messages.push({ role: "assistant", content: res.message.content });
-    } catch (err) {
-      chat.messages.pop();
-      chat.messages.push({ role: "assistant", content: "❌ Error: " + err.message });
-    }
-
-    saveChats();
-    renderMessages();
-  };
-
-  newChatBtn.onclick = newChat;
-  chatSearch.oninput = renderChats;
-
-  themeToggle.onclick = () => {
-    isDark = !isDark;
-    document.documentElement.classList.toggle("dark", isDark);
-    themeToggle.textContent = isDark ? "🌙" : "☀️";
-  };
-
-  downloadBtn.onclick = () => {
-    const chat = chats[activeChatIndex];
-    const blob = new Blob([JSON.stringify(chat, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${chat.name.replace(/\s+/g, "_")}.json`;
-    a.click();
-  };
-
-  // Init
-  if (chats.length === 0) newChat();
-  else renderChats(), renderMessages();
-  document.documentElement.classList.add("dark");
-</script>
+    // Initialize
+    if (!chats.length) newChat();
+    else { renderChats(); renderMessages(); }
+    document.documentElement.classList.add("dark");
+  </script>
 </body>
 </html>
