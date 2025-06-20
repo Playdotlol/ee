@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XenzGPT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.puter.com/apps/ai/puter.js"></script>
+</head>
+<body class="h-full flex">
+
+<!-- Sidebar -->
+<div class="w-64 bg-gray-800 p-4 flex flex-col space-y-4 border-r border-gray-700">
+  <div class="text-lg font-bold">XenzGPT</div>
+  <button id="new-chat" class="bg-green-600 rounded px-3 py-2">+ New Chat</button>
+  <div id="chat-list" class="flex flex-col space-y-2 overflow-y-auto"></div>
+
+  <div class="mt-auto">
+    <label class="block text-sm text-gray-400 mb-1">Model</label>
+    <select id="model-select" class="w-full bg-gray-700 text-white p-2 rounded">
+      <option value="gpt-3.5-turbo">GPT-3.5</option>
+      <option value="gpt-4">GPT-4</option>
+    </select>
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Mode</label>
+    <select id="mode-select" class="w-full bg-gray-700 text-white p-2 rounded">
+      <option value="chat">Chat</option>
+      <option value="code">Code</option>
+      <option value="image">Image</option>
+    </select>
+  </div>
+</div>
+
+<!-- Chat Area -->
+<div class="flex-1 flex flex-col h-full">
+  <div id="chat-window" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-900"></div>
+
+  <form id="chat-form" class="p-4 border-t border-gray-700 bg-gray-800 flex space-x-2">
+    <input id="user-input" type="text" placeholder="Send a message..." class="flex-1 p-2 rounded bg-gray-700 text-white"/>
+    <button class="bg-blue-600 px-4 py-2 rounded" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+  const chatList = document.getElementById("chat-list");
+  const chatWindow = document.getElementById("chat-window");
+  const chatForm = document.getElementById("chat-form");
+  const userInput = document.getElementById("user-input");
+  const modelSelect = document.getElementById("model-select");
+  const modeSelect = document.getElementById("mode-select");
+  const newChatBtn = document.getElementById("new-chat");
+
+  let chats = [];
+  let activeChatIndex = 0;
+
+  function newChat() {
+    chats.push({ name: "Chat " + (chats.length + 1), messages: [] });
+    activeChatIndex = chats.length - 1;
+    renderChats();
+    renderMessages();
+  }
+
+  function renderChats() {
+    chatList.innerHTML = "";
+    chats.forEach((chat, i) => {
+      const btn = document.createElement("button");
+      btn.className = `text-left px-3 py-2 rounded ${i === activeChatIndex ? "bg-gray-700" : "hover:bg-gray-700"}`;
+      btn.textContent = chat.name;
+      btn.onclick = () => {
+        activeChatIndex = i;
+        renderMessages();
+        renderChats();
+      };
+      chatList.appendChild(btn);
+    });
+  }
+
+  function renderMessages() {
+    const messages = chats[activeChatIndex]?.messages || [];
+    chatWindow.innerHTML = "";
+    messages.forEach(msg => {
+      const div = document.createElement("div");
+      div.className = `p-3 rounded max-w-2xl ${msg.role === "user" ? "bg-blue-700 self-end ml-auto" : "bg-gray-700 self-start mr-auto whitespace-pre-wrap"}`;
+      div.textContent = msg.content;
+      chatWindow.appendChild(div);
+    });
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  chatForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const input = userInput.value.trim();
+    if (!input) return;
+
+    const mode = modeSelect.value;
+    const model = modelSelect.value;
+    const chat = chats[activeChatIndex];
+
+    chat.messages.push({ role: "user", content: input });
+    renderMessages();
+    userInput.value = "";
+
+    if (mode === "image") {
+      const img = await puter.ai.txt2img({ prompt: input });
+      chat.messages.push({ role: "assistant", content: "[Image generated below]" });
+      renderMessages();
+
+      const imgEl = document.createElement("img");
+      imgEl.src = img.url;
+      imgEl.className = "rounded border border-gray-600 max-w-xs mt-2";
+      chatWindow.appendChild(imgEl);
+      return;
+    }
+
+    const systemPrompt = mode === "code"
+      ? "You are a helpful coding assistant."
+      : "You are a helpful assistant.";
+
+    const fullMessages = [
+      { role: "system", content: systemPrompt },
+      ...chat.messages
+    ];
+
+    chat.messages.push({ role: "assistant", content: "..." });
+    renderMessages();
+
+    const res = await puter.ai.chat({
+      model,
+      messages: fullMessages,
+      stream: false,
+    });
+
+    chat.messages.pop();
+    chat.messages.push({ role: "assistant", content: res.message.content });
+    renderMessages();
+  };
+
+  newChatBtn.onclick = newChat;
+
+  // Start with one chat
+  newChat();
+</script>
+</body>
+</html>
